@@ -24,6 +24,7 @@
     "expo": "^27.0.1",
     "react": "16.3.1",
     "react-native": "~0.55.2",
+    "react-native-swipeable-row": "^0.8.1",
     "react-navigation": "^2.0.4",
     "utf8": "^3.0.0",
     "watchman": "^1.0.0"

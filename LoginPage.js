@@ -9,6 +9,7 @@ import {
   Button,
   ActivityIndicator,
   Image,
+  AsyncStorage
 } from 'react-native';
 import Clockin from './Clockin';
 
@@ -72,9 +73,10 @@ export default class LoginPage extends Component<{}> {
       .then(response => response.json())
       .then((responseJson) => {
         this.setState({ user_id : responseJson.user_id, 
-                        token : responseJson.token
+                        token : responseJson.token,
+                        first_name : responseJson.first_name
         });
-
+        AsyncStorage.setItem("first_name", responseJson.first_name);
       })
       .catch(error =>
         this.setState({
@@ -95,25 +97,16 @@ export default class LoginPage extends Component<{}> {
       this.setState({ 
         isLoading: false , 
       });
+      AsyncStorage.setItem("username", this.state.username);
       this.props.navigation.navigate('Clockin', { 
         intervals: responseJson, 
         username: this.state.username, 
         password: this.state.password, 
         user: this.state.user_id, 
-        token: this.state.token
+        token: this.state.token,
+        first_name: this.state.first_name
       });
-      /*this.props.navigator.push({
-        title: 'Work Hours',
-        component: Clockin,
-        passProps: {
-          intervals: responseJson, 
-          username: this.state.username, 
-          password: this.state.password, 
-          user: this.state.user_id, 
-          token: this.state.token}
-      });*/
-    })
-    .catch(error =>
+    }).catch(error =>
       this.setState({
         isLoading: false,
         message: 'Something bad happened ' + error

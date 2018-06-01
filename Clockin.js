@@ -85,25 +85,29 @@ class ListItem extends React.PureComponent {
 }
 export default class Clockin extends Component<{}> {
 
-constructor(props) {
-  super(props);
-  this.state = {
-    currentProject : "",
-    currentHour: 0,
-    user: 0,
-    projects : [],
-    hours: [],
-    clockedIn: (false, "Not Clocked In"),
-    clockButtonText: "Clock In",
-    isLoading: false 
-  };
- }
-
-componentDidMount() {
-  this._setProjectState = this._setProjectState.bind(this);                      /* closure keeps a reference to this */
-  this._getProjects();                                                           /* sets pickers initial values */
-  this.setState({ hours: this.props.intervals, user: this.props.user});          /* sets initial values from segue */
-}
+  constructor(props) {
+    super(props);
+    this.state = {
+      currentProject : "",
+      currentHour: 0,
+      user: 0,
+      projects : [],
+      hours: [],
+      clockedIn: (false, "Not Clocked In"),
+      clockButtonText: "Clock In",
+      isLoading: false,
+      first_name: "" 
+    };
+  }
+  componentDidMount(){
+    this._setProjectState = this._setProjectState.bind(this);                      /* closure keeps a reference to this */
+    this._getProjects();                                                           /* sets pickers initial values */
+    this.setState({                                                             /* Navigation sets initial values during segue */
+      hours: this.props.navigation.state.params.intervals, 
+      user: this.props.navigation.state.params.user,
+      first_name: this.props.navigation.state.params.first_name
+    });          
+  }
 
   _keyExtractor = (item, index) => String(index);
 
@@ -129,7 +133,10 @@ componentDidMount() {
       credentials: 'include',
     })
     .then(response => response.json())
-    .then(responseJson => this.setState({projects: responseJson}))
+    .then(responseJson => {
+      this.setState({projects: responseJson})
+      AsyncStorage.setItem("projects", JSON.stringify(responseJson));
+    })
     .catch(error =>
       this.setState({
         isLoading: false,
@@ -255,35 +262,48 @@ componentDidMount() {
             'Authorization': encoded, 
           };
   };
-  static navigationOptions = {
-      title: "Clock In",
-      headerStyle: {
-        backgroundColor: '#EAEAEA',
-      },
-      headerTintColor: '#000',
-      headerTitleStyle: {
-        fontWeight: 'bold',
-      },
-      headerRight: (
-        <NavButton
-          onPress={() => alert('This is a button!')}
-          title="Projects"
-          color="#000"
-        />
-      ),
-    };
-
+  static navigationOptions = ({navigation}) => ({
+    title: "Clock In",
+    headerStyle: {
+      backgroundColor: '#EAEAEA',
+    },
+    headerTintColor: '#000',
+    headerTitleStyle: {
+      fontWeight: 'bold',
+    },
+    headerRight: (
+      <NavButton
+        onPress={() => navigation.navigate('Project')}
+        title="Projects"
+        color="#000"
+      />
+    ),
+  });
   render() {
+    const firstName = this.state.first_name
     const spinner = this.state.isLoading ?
       <ActivityIndicator size='large'/> : null;
     return (
       <View style={{flex:1}}>
-        <View style={{flexDirection: "row", justifyContent:"space-evenly"}}>
-          <Text numberOfLines={2} style={styles.welcome}>Hi, King Ryan the Great</Text>
-          <Image source={require('./Resources/seniorDevops2.png')} style={styles.thumb}/>
+        <View style={styles.topHalf}>
+          <View style={styles.logoView}>
+            <View style={styles.labelView}>
+              <Text numberOfLines={3} style={styles.welcome}>Hi, {this.state.first_name}</Text>
+              <Text style={styles.clockinStatus}>{this.state.clockedIn}</Text>
+              <View style={{flex:1, marginTop: 0, flexDirection: "row", justifyContent: 'space-evenly' }}>
+                <Button 
+                  style={{backgroundColor: '#3371FF', width:150, height: 51, borderRadius: 30}} 
+                  textStyle={{fontSize: 18, color: 'white', fontWeight: 'bold' }}
+                  onPress={this._clockIn}>
+                  {this.state.clockButtonText}
+                </Button>
+              </View>
+            </View>
+            <Image source={require('./Resources/seniorDevopsSmall.png')} style={styles.thumb}/>
+          </View>
           <Picker
             selectedValue={this.state.currentProject}
-            style={{ height: 50, width: 100, marginTop: -30 }}
+            style={styles.picker}
             onValueChange={(itemValue, itemIndex) => {
               if(this.state.clockedIn == "Clocked In"){
                 alert("You must clock out before switching projects");
@@ -310,75 +330,101 @@ componentDidMount() {
           keyExtractor={this._keyExtractor}
           renderItem={this._renderItem}
           ListHeaderComponent={this.renderHeader}
-          style={{ marginTop: 70 }}
-        />
-        <Text style={styles.clockinStatus}>{this.state.clockedIn}</Text>
-        <View style={{flex:1, marginTop: 0, flexDirection: "row", justifyContent: 'space-evenly' }}>
-          <Button 
-            style={{backgroundColor: '#3371FF', width:300, height: 51, borderRadius: 30}} 
-            textStyle={{fontSize: 18, color: 'white', fontWeight: 'bold' }}
-            onPress={this._clockIn}
-            >
-            {this.state.clockButtonText}
-          </Button>
-        </View>
-      </View>
-    );
+          style={styles.flatList}/>
+      </View>);
   }
 }
 const styles = StyleSheet.create({
-  clockinStatus: {
-    fontSize: 22,
-    flex: 0.5, 
-    margin: 0,
-    alignSelf: 'stretch',
-    textAlign: 'center'
+  topHalf: {
+    flexDirection: "row",
+    flex: .3,
+    justifyContent:"flex-start",
+    marginTop:10,
+    //backgroundColor: "#AEAEAE",
+    alignItems: "flex-start"
   },
-  clockinButton: {
-    color: "#FFFFFF",
+  logoView: {
+    flex:1, 
+    flexDirection:'row', 
+    //backgroundColor:'gray'
+  },
+  welcome: {
+    fontSize: 23,
+    textAlign: 'center',
+    marginBottom: 3
+  },
+  labelView: {
+    flex: 0.59,
+    flexDirection: 'column',
+    //backgroundColor:'red',
+    marginTop: 6,
+    height: 130,
+    width: 50,
+    justifyContent: 'space-evenly'
   },
   thumb: {
-    width: 90,
+    width: 35,
     height: 90,
-    marginRight: 10,
-    marginTop: 30,
+    margin: 1,
+    flex: 0.32,
+    alignItems: 'center',
+    //backgroundColor: 'yellow',
+    flexDirection: 'column'
   },
-  textContainer: {
+  picker: {
+    height: 150, 
+    width: 50, 
+    flex: 0.26,
+    flexDirection: 'column',
+    //backgroundColor: 'green',
+    marginTop: -40
+  },
+  flatList: {
+    marginTop:45,
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-around'
+    //backgroundColor: '#FF9484'
   },
   header: {
     flex: 1,
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: '#D3D3D3',
-    justifyContent: 'space-around'
-  },
-  separator: {
-    height: 1,
-    backgroundColor: '#dddddd'
-  },
-  labels: {
-    fontSize: 20,
-    color: 'black',
+    justifyContent: 'space-around',
+    marginLeft: 15
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#3371FF',
   },
-  welcome: {
-    fontSize: 24,
-    marginLeft:70,
-    marginRight:150,
-    marginTop: 30,
-    alignSelf: 'stretch',
-    textAlign: 'center',
-  },
   rowContainer: {
     flexDirection: 'row',
-    padding: 10,
-    alignItems: 'center'
+    padding: 5,
+  },
+  textContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-start'
+  },
+  labels: {
+    fontSize: 20,
+    color: 'black',
+    marginLeft: 20,
+    justifyContent: 'flex-start',
+    width: 120
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#dddddd'
+  },
+  clockinStatus: {
+    fontSize: 22,
+    //backgroundColor: 'red',
+    textAlign: 'center',
+    margin: 3
+  },
+  clockinButton: {
+    flex: 0.1, 
+    color: "#FFFFFF",
   },
 });

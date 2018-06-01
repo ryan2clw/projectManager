@@ -9,48 +9,52 @@ import {
   FlatList,
   Text,
   Picker,
-  ActivityIndicator
+  ActivityIndicator,
+  AsyncStorage
 } from 'react-native';
 import Button from 'apsl-react-native-button';
+import Swipeable from 'react-native-swipeable-row';
 
 class ListItem extends React.PureComponent {
 
   constructor(props) {
     super(props);
     this.state = ({
-      item : this.props.item,
-      totalHours: 0.0,
-      localFinish: ""
-    });
-    if (!this.state.item.finished)
-      /* If finished is null, set the parent states currentProject to the items project for picker */
-      this.props.parentMethod(this.state.item.project, this.state.item.id);
-  };
+      name : JSON.parse(this.props.item).name,
+      members: JSON.parse(this.props.item).members,
+      lineLength: (JSON.parse(this.props.item).members).length
+      });
+      this.lineLength = this.state.lineLength;
+  }
 
   _onPress = () => {
     this.props.onPressItem(this.props.index);
-    alert(JSON.stringify(this.props));
+    alert(this.lineLength);
   }
-
+   
   render() {
-    return (
-      <TouchableHighlight
-        onPress={this._onPress}
-        underlayColor='#dddddd'>
-        <View>
-          <View style={styles.rowContainer}>
-            <View style={styles.textContainer}>
-              <Text style={styles.labels}>{this.americanizeTime(this.props.item.started)}</Text>
-              <Text style={styles.labels} numberOfLines={1}>{
-                  this.americanizeTime(this.props.item.finished ? this.props.item.finished : "active")}
-                </Text>
-              <Text style={styles.labels}>{this.totalHours()}</Text>
-            </View>
+    const lineLength = this.lineLength*24.7;
+    const rightButtons = [
+        <View style={{width:80}}>
+        <Button 
+            style={{backgroundColor: 'red', borderRadius:0, borderColor: "#dddddd", height: lineLength}}
+            textStyle={{fontSize: 18, color: 'white', fontWeight: 'bold'}}
+            onPress={this._onPress}
+            >Delete
+          </Button>
           </View>
-          <View style={styles.separator}/>
+      /*<TouchableHighlight style={styles.deleteButton}><Text>Delete</Text></TouchableHighlight>*/
+    ];
+    const members = this.state.members.map((member)=>{return member.username + ", "});
+    return (
+      <Swipeable 
+        rightButtons={rightButtons}>
+        <View style={styles.textContainer}>
+         <Text style={styles.labels}>{this.state.name}</Text>
+         <Text style={styles.items}>{members}</Text>
         </View>
-      </TouchableHighlight>
-    );
+        <View style={styles.separator}></View>
+      </Swipeable>);
   }
 }
 export default class ProjectPage extends Component<{}> {
@@ -58,161 +62,89 @@ export default class ProjectPage extends Component<{}> {
 constructor(props) {
   super(props);
   this.state = {
-    currentProject : "",
-    currentHour: 0,
-    user: 0,
-    projects : [],
-    hours: [],
-    clockedIn: (false, "Not Clocked In"),
-    clockButtonText: "Clock In",
-    isLoading: false 
+    isLoading: false ,
+    username: ""
   };
  }
-
-componentDidMount() {
-  this._setProjectState = this._setProjectState.bind(this);                      /* closure keeps a reference to this */
-  this._getProjects();                                                           /* sets pickers initial values */
-  this.setState({ hours: this.props.intervals, user: this.props.user});          /* sets initial values from segue */
-}
+  static navigationOptions = ({navigation}) => ({
+    title: "Projects",
+  });
+  componentDidMount(){
+    AsyncStorage.getItem("first_name").then(first_name => this.setState({"first_name": first_name})).done();
+    AsyncStorage.getItem("username")
+    .then(username => this.setState({"username": username}))
+    .then(this._getProjects)  // must set username first
+    .then(this._getUsers)
+    .done();
+  }
 
   _keyExtractor = (item, index) => String(index);
 
   _renderItem = ({item, index }) => (
+    
     <ListItem
-      item={item}
+      item={JSON.stringify(item)}
       index={index}
-      onPressItem={this._onPressItem}
-      parentMethod={this._setProjectState}                        /* pass function to child as a prop */
-    />
+      onPressItem={this._onPressItem}/>
   );
-
-  _onPressItem = (index) => {
-    console.log("Pressed row: "+index);
-  };
-
-  /* API Calls  */
-  
+  _onPressItem = (index => console.log("Pressed row: " + index));
   _getProjects = () => {
-    fetch('https://seniordevops.com/clockin/projects/', {
+    var myUrl = 'https://seniordevops.com/project/list/?username=' + this.state.username;
+    fetch(myUrl, {
       method: 'GET',
       headers: this.headers(),
       credentials: 'include',
     })
     .then(response => response.json())
-    .then(responseJson => this.setState({projects: responseJson}))
+    .then(responseJson => this.setState({ projects: responseJson }))
     .catch(error =>
       this.setState({
         isLoading: false,
         message: 'Something bad happened ' + error,
     }));
-  }
-  _getHours = (currentProject) => {
-    this.setState({currentProject: currentProject, isLoading: true, hours: []});
-    var myProject = '';
-    this.state.projects.map((aProject) => {
-      if (aProject.id == currentProject){
-        myProject += aProject.name;
-      }
-    });
-    fetch('https://seniordevops.com/clockin/list/?project=' + myProject, {
+  };
+  _getUsers = () => {
+    var myUrl = 'https://seniordevops.com/project/members/?username=ryan.dines%40gmail.com';
+    fetch(myUrl, {
       method: 'GET',
       headers: this.headers(),
       credentials: 'include',
     })
     .then(response => response.json())
-    .then(responseJson => this.setState({ hours: responseJson, isLoading: false}))
+    .then((responseJson)=>{
+        this.setState({members:responseJson});})
     .catch(error =>
       this.setState({
         isLoading: false,
-        message: 'Something bad happened ' + error
+        message: 'Something bad happened ' + error,
     }));
-  }
-  _clockOut = () => {
-    this.setState({isLoading: true});
-    var rightNow = new Date().toISOString();
-    fetch('https://seniordevops.com/clockin/update/' + this.state.currentHour + '/', {
-        method: 'PUT',
-        headers: this.headers(),
-        credentials: 'include',
-        body: JSON.stringify({
-            user: this.state.user,
-            comments: "comments were made",
-            finished: rightNow,
-            project: this.state.currentProject
-        }),
-        dataType: "json",
-      })
-      .then(response => response.json())
-      .then((responseJson) => {
-        this.setState({clockedIn: (false, "Not Clocked In"), clockButtonText: "Clock In"});
-        this._getHours(this.state.currentProject);
-        this.setState({isLoading: false});
-      })
-      .catch(error =>
-        this.setState({
-          isLoading: false,
-          message: 'Something bad happened ' + error
-      }))
-    return null;
-  }
-  _clockIn = () => {
-    if (this.state.clockedIn == (true, "Clocked In")){
-      this._clockOut();
-      return null;
-    }
-    var myProject = 0;
-    this.state.projects.map((aProject) => {
-      if (aProject.id == this.state.currentProject){
-        myProject += aProject.id;
-      }
-    });
-    if (myProject == 0){
-      alert("You must select a project before clocking in.");
-      return;
-    }
-    this.setState({isLoading: true});
-    fetch('https://seniordevops.com/clockin/new/', {
-        method: 'POST',
-        headers: this.headers(),
-        credentials: 'include',
-        body: JSON.stringify({
-            user: this.state.user,
-            paid: false,
-            project: myProject
-        }),
-        dataType: "json",
-      })
-      .then(response => {
-          var responseJson = response.json();
-          var myHours = this.state.hours;
-          myHours.push(responseJson);
-          this.setState({hours: myHours, isLoading: false});
-          this._getHours(this.state.currentProject);
-      }).catch(error =>
-        this.setState({
-          isLoading: false,
-          message: 'Something bad happened ' + error
-      }));
-  }
-  _setProjectState = (myProject, myHour) => {        /* your function is declared in the parent but called with childs params */
-    this.setState({ 
-      clockButtonText: "Clock Out", 
-      currentProject: myProject, 
-      clockedIn: (true, "Clocked In"),
-      currentHour: myHour
-    });
-  }
-
+  };
+  _newProject = () => {
+    var myUrl = 'https://seniordevops.com/project/members/?username=ryan.dines%40gmail.com';
+    fetch(myUrl, {
+      method: 'GET',
+      headers: this.headers(),
+      credentials: 'include'})
+    .then(response => response.json())
+    .then(responseJson => this.setState({members:responseJson}))
+    .catch(error =>
+      this.setState({
+        isLoading: false,
+        message: 'Something bad happened ' + error,
+    }));
+  };
+  _deleteProject = () => {
+      alert("DELETE PROJECT");
+  };
   renderHeader = () => {
     return (
       <View style={styles.header}>
-        <Text style={styles.title}>Started</Text>
-        <Text style={styles.title}>Finished</Text>
-        <Text style={styles.title}>Hours</Text>
+        <Text style={styles.title}>Project</Text>
+        <Text style={styles.title}>Members</Text>
       </View>
     )
   };
-  headers() {
+  headers(){
     var base64 = require('base-64');
     var utf8 = require('utf8');
     var text = 'ryan.dines@gmail.com:Rfd362436!';
@@ -232,34 +164,29 @@ componentDidMount() {
     return (
       <View style={{flex:1}}>
         <View style={{flexDirection: "row", justifyContent:"space-evenly"}}>
-          <Text style={styles.welcome}>PROJECT PAGE</Text>
+          <Text style={styles.welcome}>Hi, {this.state.first_name}</Text>
           <Image source={require('./Resources/seniorDevops2.png')} style={styles.thumb}/>
           <Picker
-            selectedValue={this.state.currentProject}
-            style={{ height: 50, width: 100, marginTop: 10 }}
+            selectedValue={this.state.currentProject} // MUST SET STATE 
             onValueChange={(itemValue, itemIndex) => {
-              if(this.state.clockedIn == "Clocked In"){
-                alert("You must clock out before switching projects");
-                this.setState({ currentProject: this.state.currentProject});
-              }else{
-                this.setState({ currentProject: itemValue});
-                this._getHours(itemValue);
-              }
-            }}>
+              alert("Switching to " + itemValue);
+              this.setState({ currentProject: itemValue});
+            }}style={styles.picker}>
             <Picker.Item label="All" value="all" />
-            {
-              this.state.projects.map((myProject) => {
-                return (<Picker.Item 
-                label={myProject.name} 
-                value={myProject.id}
-                key={myProject.id}
-              />) 
-            })}
+            { // I FUCKING LOVE TERNARIES:   ifProjectsExists ? mapTheirValues : justChillWithNull
+              this.state.projects ?  
+                this.state.projects.map((myProject) => {
+                    return (<Picker.Item 
+                        label={myProject.name} 
+                        value={myProject.id}
+                        key={myProject.id}
+                    />)}
+              ) : null}
           </Picker>
         </View>
         {spinner}        
         <FlatList
-          data={this.state.hours} /* initial property set by previous view controller */
+          data={this.state.members} /* initial property set by previous view controller */
           keyExtractor={this._keyExtractor}
           renderItem={this._renderItem}
           ListHeaderComponent={this.renderHeader}
@@ -269,9 +196,8 @@ componentDidMount() {
           <Button 
             style={{backgroundColor: '#3371FF', width:300, height: 51, borderRadius: 30}} 
             textStyle={{fontSize: 18, color: 'white', fontWeight: 'bold' }}
-            onPress={this._clockIn}
-            >
-            {this.state.clockButtonText}
+            onPress={this._newProject}
+            >New Project
           </Button>
         </View>
       </View>
@@ -279,63 +205,61 @@ componentDidMount() {
   }
 }
 const styles = StyleSheet.create({
+  welcome: {
+    fontSize: 24,
+    height: 155,
+    margin:15,
+    textAlign: 'center',
+  },
+  thumb: {
+    width: 80,
+    height: 80,
+    marginRight: 10,},
+  header: {
+    flex: 1, flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#D3D3D3',
+    justifyContent: 'space-around',},
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    flex:0.45,
+    color: '#3371FF',},
+  rowContainer: {
+    flexDirection: 'row',
+    padding: 10,
+    alignItems: 'center'},
+  textContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-around',},
+  labels: {
+    fontSize: 20,
+    color: 'black',},
+  separator: {
+    height: 1,
+    backgroundColor: '#dddddd'},
   clockinStatus: {
     fontSize: 22,
     flex: 0.5, 
     margin: 0,
     alignSelf: 'stretch',
-    textAlign: 'center'
-  },
+    textAlign: 'center'},
   clockinButton: {
-    color: "#FFFFFF",
-  },
-  thumb: {
-    width: 80,
-    height: 80,
-    marginRight: 10,
-    marginTop: 70,
-  },
-  textContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-around'
-  },
-  header: {
-    flex: 1,
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#D3D3D3',
-    justifyContent: 'space-around'
-  },
-  separator: {
-    height: 1,
-    backgroundColor: '#dddddd'
-  },
-  labels: {
+    color: "#FFFFFF",},
+  picker: {
+    height: 50, 
+    width: 100, 
+    marginTop: -30,},
+  deleteButton: {
+    flexDirection: "column",
+    flex:1,
+    justifyContent:"center",
+    backgroundColor: "red",},
+  items: {
     fontSize: 20,
     color: 'black',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#3371FF',
-  },
-  welcome: {
-    fontSize: 24,
-    flex: 0.8, 
-    marginTop: 90,
-    alignSelf: 'stretch',
-    textAlign: 'center'
-  },
-  rowContainer: {
-    flexDirection: 'row',
-    padding: 10,
-    alignItems: 'center'
-  },
-  flowRight: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    alignSelf: 'stretch',
-    backgroundColor: '#ababab'
-  } 
+    marginLeft: 20,
+    justifyContent: 'flex-start',
+    width: 220}
 });
