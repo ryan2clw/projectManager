@@ -17,35 +17,49 @@ import Swipeable from 'react-native-swipeable-row';
 
 class ListItem extends React.PureComponent {
 
-  constructor(props) {
+  constructor(props){
     super(props);
     this.state = ({
       name : JSON.parse(this.props.item).name,
       members: JSON.parse(this.props.item).members,
-      lineLength: (JSON.parse(this.props.item).members).length
-      });
-      this.lineLength = this.state.lineLength;
-  }
-
-  _onPress = () => {
+      lineLength: (JSON.parse(this.props.item).members).length,
+      owner: JSON.parse(this.props.item).owner});
+    this.lineLength = this.state.lineLength;
+    AsyncStorage.getItem("username").then(username => this.setState({"username": username}))
+  };
+  _onPress = (isOwner) => {
     this.props.onPressItem(this.props.index);
-    alert(this.lineLength);
-  }
-   
+    if(this.state.owner.username == this.state.username){
+        alert("OWNER");
+    }else{
+        alert("NOT");
+    }
+  };
   render() {
-    const lineLength = this.lineLength*24.7;
-    const rightButtons = [
+    const lineLength = 4+this.lineLength*23;
+    const members = this.state.members.map((member)=>{return member.username + ", "});
+    var rightButtons = [];
+    if (this.state.owner.username == this.state.username){
+        rightButtons = [
         <View style={{width:80}}>
         <Button 
-            style={{backgroundColor: 'red', borderRadius:0, borderColor: "#dddddd", height: lineLength}}
+            style={{backgroundColor: 'red', borderRadius:0, borderColor: "red", height: lineLength}}
             textStyle={{fontSize: 18, color: 'white', fontWeight: 'bold'}}
             onPress={this._onPress}
             >Delete
           </Button>
-          </View>
-      /*<TouchableHighlight style={styles.deleteButton}><Text>Delete</Text></TouchableHighlight>*/
-    ];
-    const members = this.state.members.map((member)=>{return member.username + ", "});
+        </View>];
+    }else{
+        rightButtons = [
+        <View style={{width:80}}>
+        <Button 
+            style={{backgroundColor: '#FFBB00', borderRadius:0, borderColor: "#FFBB00", height: lineLength}}
+            textStyle={{fontSize: 18, color: 'black', fontWeight: 'bold'}}
+            onPress={this._onPress}
+            >Quit
+          </Button>
+        </View>];
+    }
     return (
       <Swipeable 
         rightButtons={rightButtons}>
@@ -112,7 +126,8 @@ constructor(props) {
     })
     .then(response => response.json())
     .then((responseJson)=>{
-        this.setState({members:responseJson});})
+        this.setState({members:responseJson});
+        })
     .catch(error =>
       this.setState({
         isLoading: false,

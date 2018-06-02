@@ -105,7 +105,8 @@ export default class Clockin extends Component<{}> {
     this.setState({                                                             /* Navigation sets initial values during segue */
       hours: this.props.navigation.state.params.intervals, 
       user: this.props.navigation.state.params.user,
-      first_name: this.props.navigation.state.params.first_name
+      first_name: this.props.navigation.state.params.first_name,
+      username: this.props.navigation.state.params.username
     });          
   }
 
