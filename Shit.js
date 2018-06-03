@@ -12,3 +12,15 @@
                     />)}
               ) : null}
           </Picker>
+
+          /*
+    var myProjects = {}
+    this.state.projects.forEach((project)=>{
+      myProjects[project.name] = project.id;
+    });
+    const projectIDinRow = myProjects[JSON.parse(item).name]);*/
+    //var projectList = this.state.projects.map(project=>project.id);
+    const newMembers = this.state.members.pop(index);
+    alert(JSON.stringify(newMembers));
+    //this.setState({members: newMembers});
+    /*

@@ -28,9 +28,7 @@ class ListItem extends React.PureComponent {
       this.props.parentMethod(this.state.item.project, this.state.item.id);
   };
 
-  _onPress = () => {
-    this.props.onPressItem(this.props.index);
-  }
+  _onPressItem = (index => alert("Pressed row: " + index));
   doubleDigit=(i)=> {
     if (i < 10) {i = "0" + i};      // add zero in front of numbers < 10
       return i;
@@ -120,11 +118,6 @@ export default class Clockin extends Component<{}> {
       parentMethod={this._setProjectState}                        /* pass function to child as a prop */
     />
   );
-
-  _onPressItem = (index) => {
-    console.log("Pressed row: "+index);
-  };
-
   /* API Calls  */
   
   _getProjects = () => {

@@ -27,14 +27,14 @@ class ListItem extends React.PureComponent {
     this.lineLength = this.state.lineLength;
     AsyncStorage.getItem("username").then(username => this.setState({"username": username}))
   };
-  _onPress = (isOwner) => {
-    this.props.onPressItem(this.props.index);
-    if(this.state.owner.username == this.state.username){
-        alert("OWNER");
+  _onPress = () => {
+    if (this.state.owner.username == this.state.username){
+      this.props.onPressItem(this.props.item, this.props.index, "DELETE");
     }else{
-        alert("NOT");
+      this.props.onPressItem(this.props.item, this.props.index, "QUIT");
     }
   };
+  
   render() {
     const lineLength = 4+this.lineLength*23;
     const members = this.state.members.map((member)=>{return member.username + ", "});
@@ -86,7 +86,9 @@ constructor(props) {
   componentDidMount(){
     AsyncStorage.getItem("first_name").then(first_name => this.setState({"first_name": first_name})).done();
     AsyncStorage.getItem("username")
-    .then(username => this.setState({"username": username}))
+    .then(username => this.setState({
+        "username": username,
+        "projectURL":"https://seniordevops.com/project/list/?username=" + username }))
     .then(this._getProjects)  // must set username first
     .then(this._getUsers)
     .done();
@@ -101,10 +103,29 @@ constructor(props) {
       index={index}
       onPressItem={this._onPressItem}/>
   );
-  _onPressItem = (index => console.log("Pressed row: " + index));
+  /* List item props passed here */
+  _onPressItem = ((item, index, buttonType) => {
+    if(buttonType == "DELETE"){
+      const deleteURL = "https://seniordevops.com/project/delete/" + JSON.parse(item).name;
+      alert("DELETING: " + deleteURL);
+      fetch(deleteURL, {
+        method: 'DELETE',
+        headers: this.headers(),
+        credentials: 'include',
+      })
+      .then(response => response.json())
+      .then(responseJson => this.setState({ projects: responseJson }))
+      .catch(error =>
+        this.setState({
+          isLoading: false,
+          message: 'Something bad happened ' + error,
+      }));
+    }else{
+      alert("QUITTING");
+    }
+  });
   _getProjects = () => {
-    var myUrl = 'https://seniordevops.com/project/list/?username=' + this.state.username;
-    fetch(myUrl, {
+    fetch(this.state.projectURL, {
       method: 'GET',
       headers: this.headers(),
       credentials: 'include',
@@ -201,7 +222,7 @@ constructor(props) {
         </View>
         {spinner}        
         <FlatList
-          data={this.state.members} /* initial property set by previous view controller */
+          data={this.state.members}
           keyExtractor={this._keyExtractor}
           renderItem={this._renderItem}
           ListHeaderComponent={this.renderHeader}
