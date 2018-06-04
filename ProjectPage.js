@@ -29,6 +29,7 @@ class ListItem extends React.PureComponent {
   };
   _onPress = () => {
     if (this.state.owner.username == this.state.username){
+      this.swipeable.recenter();
       this.props.onPressItem(this.props.item, this.props.index, "DELETE");
     }else{
       this.props.onPressItem(this.props.item, this.props.index, "QUIT");
@@ -62,6 +63,7 @@ class ListItem extends React.PureComponent {
     }
     return (
       <Swipeable 
+        onRef={ref => this.swipeable = ref}
         rightButtons={rightButtons}>
         <View style={styles.textContainer}>
          <Text style={styles.labels}>{this.state.name}</Text>
@@ -107,14 +109,13 @@ constructor(props) {
   _onPressItem = ((item, index, buttonType) => {
     if(buttonType == "DELETE"){
       const deleteURL = "https://seniordevops.com/project/delete/" + JSON.parse(item).name;
-      alert("DELETING: " + deleteURL);
       fetch(deleteURL, {
         method: 'DELETE',
         headers: this.headers(),
         credentials: 'include',
       })
-      .then(response => response.json())
-      .then(responseJson => this.setState({ projects: responseJson }))
+      .then(this._getProjects)  // reload picker and table after deletion
+      .then(this._getUsers)
       .catch(error =>
         this.setState({
           isLoading: false,
@@ -146,9 +147,7 @@ constructor(props) {
       credentials: 'include',
     })
     .then(response => response.json())
-    .then((responseJson)=>{
-        this.setState({members:responseJson});
-        })
+    .then((responseJson)=>this.setState({members:responseJson}))
     .catch(error =>
       this.setState({
         isLoading: false,
@@ -249,8 +248,11 @@ const styles = StyleSheet.create({
   },
   thumb: {
     width: 80,
-    height: 80,
-    marginRight: 10,},
+    height: 80},
+  picker: {
+    height: 50, 
+    width: 100, 
+    marginTop: -30},
   header: {
     flex: 1, flexDirection: 'row',
     borderBottomWidth: 1,
@@ -283,10 +285,6 @@ const styles = StyleSheet.create({
     textAlign: 'center'},
   clockinButton: {
     color: "#FFFFFF",},
-  picker: {
-    height: 50, 
-    width: 100, 
-    marginTop: -30,},
   deleteButton: {
     flexDirection: "column",
     flex:1,
