@@ -27,8 +27,13 @@ class ListItem extends React.PureComponent {
     this.lineLength = this.state.lineLength;
     AsyncStorage.getItem("username").then(username => this.setState({"username": username}))
   };
+ 
+  handleUserBeganScrollingParentView() {
+    this.swipeable.recenter();
+  }
+
   _onPress = () => {
-    if (this.state.owner.username == this.state.username){
+    if (this.state.owner.username == this.state.username) {
       this.swipeable.recenter();
       this.props.onPressItem(this.props.item, this.props.index, "DELETE");
     }else{
@@ -108,14 +113,14 @@ constructor(props) {
   /* List item props passed here */
   _onPressItem = ((item, index, buttonType) => {
     if(buttonType == "DELETE"){
-      const deleteURL = "https://seniordevops.com/project/delete/" + JSON.parse(item).name;
+      const deleteURL = "https://seniordevops.com/project/delete/" + JSON.parse(item).name + "/";
       fetch(deleteURL, {
         method: 'DELETE',
         headers: this.headers(),
         credentials: 'include',
       })
-      .then(this._getProjects)  // reload picker and table after deletion
-      .then(this._getUsers)
+      .then(()=>{this._getProjects()})  // reload picker and table after deletion
+      .then(()=>{this._getUsers()})
       .catch(error =>
         this.setState({
           isLoading: false,
@@ -132,7 +137,9 @@ constructor(props) {
       credentials: 'include',
     })
     .then(response => response.json())
-    .then(responseJson => this.setState({ projects: responseJson }))
+    .then((responseJson) => {
+      this.setState({ projects: responseJson });
+    })
     .catch(error =>
       this.setState({
         isLoading: false,
@@ -154,23 +161,51 @@ constructor(props) {
         message: 'Something bad happened ' + error,
     }));
   };
+  /*
   _newProject = () => {
-    var myUrl = 'https://seniordevops.com/project/members/?username=ryan.dines%40gmail.com';
+    var myUrl = 'https://seniordevops.com/project/new/';
+    AsyncStorage.getItem("user")
+    .then(user => {
+      this.setState({user: user});
+      var data = JSON.stringify({"owner": Number(user), "name": "newFuckProject", members: [Number(user)]});
+      fetch(myUrl, {
+        method: 'POST',
+        headers: this.headers(),
+        credentials: 'include',
+        body: data,
+        dataType: "json",
+        })
+      .then(response => response.json())
+      .then(responseJson => {
+        var projectList = this.state.projects.map((project)=>{return project.id });
+        projectList.push(responseJson.id);
+        this.updateProjectSet(projectList, this.state.username);
+      })
+      .catch(error =>
+        this.setState({
+          isLoading: false,
+          message: 'Something bad happened ' + error,
+      }));
+    })
+  };
+  updateProjectSet=(projectList, username)=>{
+    var myUrl = 'https://seniordevops.com/project/update/' +  encodeURIComponent(username) + '/';
+    var data = { "project_set": projectList };
     fetch(myUrl, {
-      method: 'GET',
-      headers: this.headers(),
-      credentials: 'include'})
+        method: 'PUT',
+        headers: this.headers(),
+        credentials: 'include',
+        body: JSON.stringify(data),
+        dataType: "json",
+        })
     .then(response => response.json())
-    .then(responseJson => this.setState({members:responseJson}))
-    .catch(error =>
-      this.setState({
-        isLoading: false,
-        message: 'Something bad happened ' + error,
-    }));
-  };
-  _deleteProject = () => {
-      alert("DELETE PROJECT");
-  };
+    .then(responseJson => {
+        alert(JSON.stringify(responseJson));
+    })
+    .catch(error => {
+        alert(JSON.stringify(error));
+    })
+  };*/
   renderHeader = () => {
     return (
       <View style={styles.header}>
