@@ -243,7 +243,8 @@ constructor(props) {
               ) : null}
           </Picker>
         </View>
-        {spinner}        
+        {spinner}
+        <Text style={styles.welcome}>{this.state.currentProject}</Text>
         <FlatList
           data={this.state.members}
           keyExtractor={this._keyExtractor}
