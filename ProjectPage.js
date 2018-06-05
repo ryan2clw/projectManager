@@ -161,13 +161,14 @@ constructor(props) {
         message: 'Something bad happened ' + error,
     }));
   };
-  /*
   _newProject = () => {
     var myUrl = 'https://seniordevops.com/project/new/';
     AsyncStorage.getItem("user")
     .then(user => {
       this.setState({user: user});
-      var data = JSON.stringify({"owner": Number(user), "name": "newFuckProject", members: [Number(user)]});
+      var data = JSON.stringify({
+        "owner": Number(user), 
+        "name": "someProject"});
       fetch(myUrl, {
         method: 'POST',
         headers: this.headers(),
@@ -177,17 +178,13 @@ constructor(props) {
         })
       .then(response => response.json())
       .then(responseJson => {
-        var projectList = this.state.projects.map((project)=>{return project.id });
+        var projectList = this.state.projects.map((project)=>{ return project.id });
         projectList.push(responseJson.id);
         this.updateProjectSet(projectList, this.state.username);
       })
-      .catch(error =>
-        this.setState({
-          isLoading: false,
-          message: 'Something bad happened ' + error,
-      }));
+      .catch( (error) => {alert(JSON.stringify(error))});
     })
-  };
+  }
   updateProjectSet=(projectList, username)=>{
     var myUrl = 'https://seniordevops.com/project/update/' +  encodeURIComponent(username) + '/';
     var data = { "project_set": projectList };
@@ -198,14 +195,13 @@ constructor(props) {
         body: JSON.stringify(data),
         dataType: "json",
         })
-    .then(response => response.json())
-    .then(responseJson => {
-        alert(JSON.stringify(responseJson));
-    })
+    .then(response => response.json()) // pull bits off of the buffer,
+    .then(()=>{this._getProjects()})  //  the response data isnt useful, but did it to ensure syncronous behavior
+    .then(()=>{this._getUsers()})     // reload picker and table after insertion
     .catch(error => {
         alert(JSON.stringify(error));
     })
-  };*/
+  };
   renderHeader = () => {
     return (
       <View style={styles.header}>
