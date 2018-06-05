@@ -10,7 +10,8 @@ import {
   Text,
   Picker,
   ActivityIndicator,
-  AsyncStorage
+  AsyncStorage,
+  TextInput
 } from 'react-native';
 import Button from 'apsl-react-native-button';
 import Swipeable from 'react-native-swipeable-row';
@@ -121,13 +122,15 @@ constructor(props) {
       })
       .then(()=>{this._getProjects()})  // reload picker and table after deletion
       .then(()=>{this._getUsers()})
-      .catch(error =>
-        this.setState({
-          isLoading: false,
-          message: 'Something bad happened ' + error,
-      }));
+      .catch( (error) => {alert(JSON.stringify(error))});
     }else{
-      alert("QUITTING");
+      var myProjects = {};
+      this.state.projects.forEach(function(project){
+          myProjects[project.name] = project.id;
+      });
+      delete(myProjects[JSON.parse(item).name]);
+      var projectList = Object.values(myProjects);
+      this.updateProjectSet(projectList, this.state.username);
     }
   });
   _getProjects = () => {
@@ -137,14 +140,8 @@ constructor(props) {
       credentials: 'include',
     })
     .then(response => response.json())
-    .then((responseJson) => {
-      this.setState({ projects: responseJson });
-    })
-    .catch(error =>
-      this.setState({
-        isLoading: false,
-        message: 'Something bad happened ' + error,
-    }));
+    .then((responseJson) => {this.setState({ projects: responseJson });})
+    .catch( (error) => {alert(JSON.stringify(error))});
   };
   _getUsers = () => {
     var myUrl = 'https://seniordevops.com/project/members/?username=ryan.dines%40gmail.com';
@@ -155,11 +152,7 @@ constructor(props) {
     })
     .then(response => response.json())
     .then((responseJson)=>this.setState({members:responseJson}))
-    .catch(error =>
-      this.setState({
-        isLoading: false,
-        message: 'Something bad happened ' + error,
-    }));
+    .catch( (error) => {alert(JSON.stringify(error))});
   };
   _newProject = () => {
     var myUrl = 'https://seniordevops.com/project/new/';
@@ -168,7 +161,8 @@ constructor(props) {
       this.setState({user: user});
       var data = JSON.stringify({
         "owner": Number(user), 
-        "name": "someProject"});
+        "name": this.state.newProject
+        });
       fetch(myUrl, {
         method: 'POST',
         headers: this.headers(),
@@ -182,6 +176,7 @@ constructor(props) {
         projectList.push(responseJson.id);
         this.updateProjectSet(projectList, this.state.username);
       })
+      .then(()=>{this.setState({newProject: ""})})
       .catch( (error) => {alert(JSON.stringify(error))});
     })
   }
@@ -198,9 +193,7 @@ constructor(props) {
     .then(response => response.json()) // pull bits off of the buffer,
     .then(()=>{this._getProjects()})  //  the response data isnt useful, but did it to ensure syncronous behavior
     .then(()=>{this._getUsers()})     // reload picker and table after insertion
-    .catch(error => {
-        alert(JSON.stringify(error));
-    })
+    .catch(error => {alert(JSON.stringify(error));})
   };
   renderHeader = () => {
     return (
@@ -258,9 +251,14 @@ constructor(props) {
           ListHeaderComponent={this.renderHeader}
         />
         <Text style={styles.clockinStatus}>{this.state.clockedIn}</Text>
+        <TextInput
+          style={styles.newProject}
+          value={this.state.newProject}
+          placeholder='New project name'
+          onChangeText={(value) => this.setState({newProject: value})}/>
         <View style={{flex:1, marginTop: 0, flexDirection: "row", justifyContent: 'space-evenly' }}>
           <Button 
-            style={{backgroundColor: '#3371FF', width:300, height: 51, borderRadius: 30}} 
+            style={styles.projectButton} 
             textStyle={{fontSize: 18, color: 'white', fontWeight: 'bold' }}
             onPress={this._newProject}
             >New Project
@@ -321,6 +319,25 @@ const styles = StyleSheet.create({
     flex:1,
     justifyContent:"center",
     backgroundColor: "red",},
+  projectButton: {
+    backgroundColor: '#3371FF',
+    width:300, 
+    height: 51,
+    borderRadius: 30,},
+  newProject: {
+    height: 36,
+    width: 240,
+    padding: 4,
+    marginBottom: 10,
+    fontSize: 18,
+    borderWidth: 1,
+    borderColor: '#1081f2',
+    color: '#1081f2',
+    borderRadius: 8,
+    borderColor: '#15b232',
+    textAlign: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center'},
   items: {
     fontSize: 20,
     color: 'black',
