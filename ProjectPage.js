@@ -66,7 +66,7 @@ class ListItem extends React.PureComponent {
                 backgroundColor: 'red', 
                 borderRadius:0, 
                 borderColor: "red", 
-                height: 4+this.state.lineLength*23
+                height: 1+this.state.lineLength*24
               }}
               textStyle={{
                 fontSize: 18, 
@@ -277,7 +277,7 @@ constructor(props) {
     const spinner = this.state.isLoading ?
       <ActivityIndicator size='large'/> : null;
     return (
-      <View style={{flex:1}}>
+      <View style={{flex:2, paddingBottom:25}}>
         <View style={{flexDirection: "row", justifyContent:"space-evenly"}}>
           <Text style={styles.welcome}>Hi, {this.state.first_name}</Text>
           <Image source={require('./Resources/seniorDevops2.png')} style={styles.thumb}/>
@@ -385,9 +385,10 @@ const styles = StyleSheet.create({
     backgroundColor: "red",},
   projectButton: {
     backgroundColor: '#3371FF',
+    borderColor: '#2959C6',
     width:300, 
     height: 51,
-    borderRadius: 30,},
+    borderRadius: 27,},
   newProject: {
     height: 36,
     width: 240,
