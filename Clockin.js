@@ -18,14 +18,11 @@ class ListItem extends React.PureComponent {
 
   constructor(props) {
     super(props);
-    this.state = ({
-      item : this.props.item,
-      totalHours: 0.0,
-      localFinish: ""
-    });
-    if (!this.state.item.finished)
-      /* If finished is null, set the parent states currentProject to the items project for picker */
+    this.state = ({item : this.props.item});
+    /* If finished is null, this routine sets the parents currentProject to the list items project for the pickers state */
+    if (!this.state.item.finished){
       this.props.parentMethod(this.state.item.project, this.state.item.id);
+    }
   };
 
   _onPressItem = (index => alert("Pressed row: " + index));

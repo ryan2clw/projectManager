@@ -21,12 +21,21 @@ class ListItem extends React.PureComponent {
   constructor(props){
     super(props);
     this.state = ({
+      item : this.props.item,
+      lineLength: (JSON.parse(this.props.item).members).length});
+    /*
+    this.state = ({
       name : JSON.parse(this.props.item).name,
       members: JSON.parse(this.props.item).members,
       lineLength: (JSON.parse(this.props.item).members).length,
-      owner: JSON.parse(this.props.item).owner});
-    this.lineLength = this.state.lineLength;
-    AsyncStorage.getItem("username").then(username => this.setState({"username": username}))
+      owner: JSON.parse(this.props.item).owner,
+      username: "ryan.dines@gmail.com"
+      });
+    this.lineLength = this.state.lineLength;*/
+    /* MARK TO DO: FIX HARD CODED NAME IN APP
+    AsyncStorage.getItem("username").then((username) => {
+      this.setState({"username": username});
+    });*/
   };
  
   handleUserBeganScrollingParentView() {
@@ -34,8 +43,9 @@ class ListItem extends React.PureComponent {
   }
 
   _onPress = () => {
-    if (this.state.owner.username == this.state.username) {
-      this.swipeable.recenter();
+
+    this.swipeable.recenter();
+    if (JSON.parse(this.props.item).owner.username == "ryan.dines@gmail.com") {
       this.props.onPressItem(this.props.item, this.props.index, "DELETE");
     }else{
       this.props.onPressItem(this.props.item, this.props.index, "QUIT");
@@ -43,37 +53,46 @@ class ListItem extends React.PureComponent {
   };
   
   render() {
-    const lineLength = 4+this.lineLength*23;
-    const members = this.state.members.map((member)=>{return member.username + ", "});
-    var rightButtons = [];
-    if (this.state.owner.username == this.state.username){
-        rightButtons = [
-        <View style={{width:80}}>
-        <Button 
-            style={{backgroundColor: 'red', borderRadius:0, borderColor: "red", height: lineLength}}
-            textStyle={{fontSize: 18, color: 'white', fontWeight: 'bold'}}
-            onPress={this._onPress}
-            >Delete
-          </Button>
-        </View>];
-    }else{
-        rightButtons = [
-        <View style={{width:80}}>
-        <Button 
-            style={{backgroundColor: '#FFBB00', borderRadius:0, borderColor: "#FFBB00", height: lineLength}}
-            textStyle={{fontSize: 18, color: 'black', fontWeight: 'bold'}}
-            onPress={this._onPress}
-            >Quit
-          </Button>
-        </View>];
-    }
     return (
       <Swipeable 
         onRef={ref => this.swipeable = ref}
-        rightButtons={rightButtons}>
+        rightButtons={
+          // I FUCKING LOVE TERNARIES:   ifOwnership ? DeleteMode : QuitMode
+          (JSON.parse(this.props.item).owner.username == "ryan.dines@gmail.com") ? 
+          ([
+            <View style={{width:80}}>
+            <Button 
+              style={{
+                backgroundColor: 'red', 
+                borderRadius:0, 
+                borderColor: "red", 
+                height: 4+this.state.lineLength*23
+              }}
+              textStyle={{
+                fontSize: 18, 
+                color: 'white', 
+                fontWeight: 'bold'
+              }}
+              onPress={this._onPress}> Delete </Button>
+            </View>]) : (
+          [
+            <View style={{width:80}}>
+            <Button 
+              style={{
+                backgroundColor: '#FFBB00', 
+                borderRadius:0, 
+                borderColor: "#FFBB00", 
+                height: 4+this.state.lineLength*23}}
+              textStyle={{
+                fontSize: 18, 
+                color: 'black', 
+                fontWeight: 'bold'}}
+              onPress={this._onPress}> Quit </Button>
+            </View>
+          ])}>
         <View style={styles.textContainer}>
-         <Text style={styles.labels}>{this.state.name}</Text>
-         <Text style={styles.items}>{members}</Text>
+         <Text style={styles.labels}>{JSON.parse(this.props.item).name}</Text>
+         <Text style={styles.items}>{ JSON.parse(this.props.item).members.map((member)=>{return member.username + ", "})}</Text>
         </View>
         <View style={styles.separator}></View>
       </Swipeable>);
@@ -100,6 +119,12 @@ constructor(props) {
     .then(this._getProjects)  // must set username first
     .then(this._getUsers)
     .done();
+    this.setState({
+      currentProjectName: "Projects Overview", 
+      projectMode: true,
+      currentProject: '{"name": "Projects Overview"}',
+      textBox: 'New project name',
+      buttonText: 'New Project'});
   }
 
   _keyExtractor = (item, index) => String(index);
@@ -111,7 +136,8 @@ constructor(props) {
       index={index}
       onPressItem={this._onPressItem}/>
   );
-  /* List item props passed here */
+  /* List item props passed here 
+     Deletes or Quits Project and then makes API calls to update UI */
   _onPressItem = ((item, index, buttonType) => {
     if(buttonType == "DELETE"){
       const deleteURL = "https://seniordevops.com/project/delete/" + JSON.parse(item).name + "/";
@@ -120,8 +146,10 @@ constructor(props) {
         headers: this.headers(),
         credentials: 'include',
       })
-      .then(()=>{this._getProjects()})  // reload picker and table after deletion
-      .then(()=>{this._getUsers()})
+      .then(()=>{
+        this._getProjects();
+        this._getUsers();
+      })  // reload picker and table after deletion
       .catch( (error) => {alert(JSON.stringify(error))});
     }else{
       var myProjects = {};
@@ -144,6 +172,7 @@ constructor(props) {
     .catch( (error) => {alert(JSON.stringify(error))});
   };
   _getUsers = () => {
+    this.setState({isLoading: true});
     var myUrl = 'https://seniordevops.com/project/members/?username=ryan.dines%40gmail.com';
     fetch(myUrl, {
       method: 'GET',
@@ -151,11 +180,18 @@ constructor(props) {
       credentials: 'include',
     })
     .then(response => response.json())
-    .then((responseJson)=>this.setState({members:responseJson}))
-    .catch( (error) => {alert(JSON.stringify(error))});
+    .then((responseJson)=>{
+      this.setState({
+        members:responseJson,
+        isLoading:false});
+      })
+    .catch( (error) => {
+      this.setState({members:[],isLoading:false});
+    });
   };
   _newProject = () => {
-    var myUrl = 'https://seniordevops.com/project/new/';
+    if(this.state.projectMode){
+      var myUrl = 'https://seniordevops.com/project/new/';
     AsyncStorage.getItem("user")
     .then(user => {
       this.setState({user: user});
@@ -179,6 +215,9 @@ constructor(props) {
       .then(()=>{this.setState({newProject: ""})})
       .catch( (error) => {alert(JSON.stringify(error))});
     })
+    }else{
+      alert("MAKE USERS");
+    }
   }
   updateProjectSet=(projectList, username)=>{
     var myUrl = 'https://seniordevops.com/project/update/' +  encodeURIComponent(username) + '/';
@@ -216,6 +255,23 @@ constructor(props) {
             'Authorization': encoded, 
           };
   };
+  pickedProject = (itemValue, itemIndex) => {
+    if (JSON.parse(itemValue).name == "Projects Overview"){
+      this.setState({
+        projectMode: true, 
+        textBox: 'New project name',
+        buttonText: 'New Project'});
+    }else{
+      this.setState({
+        projectMode: false,
+        textBox: 'email address',
+        buttonText: 'Invite'});
+    }
+    this.setState({ 
+      currentProject: itemValue,
+      currentProjectName: JSON.parse(itemValue).name,
+      currentProjectID: JSON.parse(itemValue).id});
+  };
 
   render() {
     const spinner = this.state.isLoading ?
@@ -227,24 +283,22 @@ constructor(props) {
           <Image source={require('./Resources/seniorDevops2.png')} style={styles.thumb}/>
           <Picker
             selectedValue={this.state.currentProject} // MUST SET STATE 
-            onValueChange={(itemValue, itemIndex) => {
-              alert("Switching to " + itemValue);
-              this.setState({ currentProject: itemValue});
-            }}style={styles.picker}>
-            <Picker.Item label="All" value="all" />
+            onValueChange={this.pickedProject}
+            style={styles.picker}>
+            <Picker.Item label="All" value='{"name": "Projects Overview"}' />
             { // I FUCKING LOVE TERNARIES:   ifProjectsExists ? mapTheirValues : justChillWithNull
               this.state.projects ?  
                 this.state.projects.map((myProject) => {
                     return (<Picker.Item 
                         label={myProject.name} 
-                        value={myProject.id}
+                        value={JSON.stringify(myProject)}
                         key={myProject.id}
                     />)}
-              ) : null}
-          </Picker>
+              ) : null }
+          </Picker> 
         </View>
         {spinner}
-        <Text style={styles.welcome}>{this.state.currentProject}</Text>
+        <Text style={styles.project}>{this.state.currentProjectName}</Text>
         <FlatList
           data={this.state.members}
           keyExtractor={this._keyExtractor}
@@ -255,14 +309,14 @@ constructor(props) {
         <TextInput
           style={styles.newProject}
           value={this.state.newProject}
-          placeholder='New project name'
+          placeholder={this.state.textBox}
           onChangeText={(value) => this.setState({newProject: value})}/>
         <View style={{flex:1, marginTop: 0, flexDirection: "row", justifyContent: 'space-evenly' }}>
           <Button 
             style={styles.projectButton} 
             textStyle={{fontSize: 18, color: 'white', fontWeight: 'bold' }}
             onPress={this._newProject}
-            >New Project
+            >{this.state.buttonText}
           </Button>
         </View>
       </View>
@@ -271,10 +325,19 @@ constructor(props) {
 }
 const styles = StyleSheet.create({
   welcome: {
-    fontSize: 24,
-    height: 155,
+    fontSize: 22,
+    height: 50,
     margin:15,
     textAlign: 'center',
+    width: 180,
+  },
+  project: {
+    fontSize: 27,
+    height: 50,
+    margin:15,
+    textAlign: 'center',
+    width: 220,
+    color: '#15b232',
   },
   thumb: {
     width: 80,
@@ -332,7 +395,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     fontSize: 18,
     borderWidth: 1,
-    borderColor: '#1081f2',
     color: '#1081f2',
     borderRadius: 8,
     borderColor: '#15b232',
