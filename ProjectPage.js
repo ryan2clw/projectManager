@@ -23,16 +23,9 @@ class ListItem extends React.PureComponent {
     this.state = ({
       item : this.props.item,
       lineLength: (JSON.parse(this.props.item).members).length});
-    /*
-    this.state = ({
-      name : JSON.parse(this.props.item).name,
-      members: JSON.parse(this.props.item).members,
-      lineLength: (JSON.parse(this.props.item).members).length,
-      owner: JSON.parse(this.props.item).owner,
-      username: "ryan.dines@gmail.com"
-      });
-    this.lineLength = this.state.lineLength;*/
+
     /* MARK TO DO: FIX HARD CODED NAME IN APP
+
     AsyncStorage.getItem("username").then((username) => {
       this.setState({"username": username});
     });*/
@@ -63,7 +56,7 @@ class ListItem extends React.PureComponent {
             <View style={{width:80}}>
             <Button 
               style={{
-                backgroundColor: 'red', 
+                backgroundColor: 'red',
                 borderRadius:0, 
                 borderColor: "red", 
                 height: 1+this.state.lineLength*24
@@ -192,31 +185,47 @@ constructor(props) {
   _newProject = () => {
     if(this.state.projectMode){
       var myUrl = 'https://seniordevops.com/project/new/';
-    AsyncStorage.getItem("user")
-    .then(user => {
-      this.setState({user: user});
-      var data = JSON.stringify({
-        "owner": Number(user), 
-        "name": this.state.newProject
-        });
-      fetch(myUrl, {
-        method: 'POST',
-        headers: this.headers(),
-        credentials: 'include',
-        body: data,
-        dataType: "json",
+      AsyncStorage.getItem("user")
+      .then(user => {
+        this.setState({user: user});
+        var data = JSON.stringify({
+          "owner": Number(user), 
+          "name": this.state.newItem
+          });
+        fetch(myUrl, {
+          method: 'POST',
+          headers: this.headers(),
+          credentials: 'include',
+          body: data,
+          dataType: "json",
+          })
+        .then(response => response.json())
+        .then(responseJson => {
+          var projectList = this.state.projects.map((project)=>{ return project.id });
+          projectList.push(responseJson.id);
+          this.updateProjectSet(projectList, this.state.username);
         })
-      .then(response => response.json())
-      .then(responseJson => {
-        var projectList = this.state.projects.map((project)=>{ return project.id });
-        projectList.push(responseJson.id);
-        this.updateProjectSet(projectList, this.state.username);
+        .then(()=>{this.setState({newItem: ""})})
+        .catch( (error) => {alert(JSON.stringify(error))});
       })
-      .then(()=>{this.setState({newProject: ""})})
-      .catch( (error) => {alert(JSON.stringify(error))});
-    })
     }else{
-      alert("MAKE USERS");
+      this.setState({isLoading: true});
+      var myURL = "https://seniordevops.com/project/list/?username=" + encodeURIComponent(this.state.newItem);
+      fetch(myURL, {
+      method: 'GET',
+      headers: this.headers(),
+      credentials: 'include',
+      })
+      .then(response => response.json())
+      .then((responseJson) => {
+        var myProjects = [];
+        responseJson.forEach(function(project){
+            myProjects.push(project.id);
+        });
+        myProjects.push(this.state.currentProjectID); // ADDS THE NEW PROJECT ID TO THE ARRAY OF OLD ONES
+        this.updateProjectSet(myProjects, this.state.newItem);
+      })
+      .catch( (error) => {alert(JSON.stringify(error))});
     }
   }
   updateProjectSet=(projectList, username)=>{
@@ -307,10 +316,10 @@ constructor(props) {
         />
         <Text style={styles.clockinStatus}>{this.state.clockedIn}</Text>
         <TextInput
-          style={styles.newProject}
-          value={this.state.newProject}
+          style={styles.newItem}
+          value={this.state.newItem}
           placeholder={this.state.textBox}
-          onChangeText={(value) => this.setState({newProject: value})}/>
+          onChangeText={(value) => this.setState({newItem: value})}/>
         <View style={{flex:1, marginTop: 0, flexDirection: "row", justifyContent: 'space-evenly' }}>
           <Button 
             style={styles.projectButton} 
@@ -389,7 +398,7 @@ const styles = StyleSheet.create({
     width:300, 
     height: 51,
     borderRadius: 27,},
-  newProject: {
+  newItem: {
     height: 36,
     width: 240,
     padding: 4,
