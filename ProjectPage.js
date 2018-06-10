@@ -93,16 +93,13 @@ class ListItem extends React.PureComponent {
 }
 export default class ProjectPage extends Component<{}> {
 
-constructor(props) {
-  super(props);
-  this.state = {
-    isLoading: false ,
-    username: ""
+  constructor(props) {
+    super(props);
+    this.state = {
+      isLoading: false ,
+      username: ""
+    };
   };
- }
-  static navigationOptions = ({navigation}) => ({
-    title: "Projects",
-  });
   componentDidMount(){
     AsyncStorage.getItem("first_name").then(first_name => this.setState({"first_name": first_name})).done();
     AsyncStorage.getItem("username")
@@ -119,7 +116,9 @@ constructor(props) {
       textBox: 'New project name',
       buttonText: 'New Project'});
   }
-
+  static navigationOptions = ({navigation}) => ({
+    title: "Projects",
+  });
   _keyExtractor = (item, index) => String(index);
 
   _renderItem = ({item, index }) => (
@@ -183,33 +182,36 @@ constructor(props) {
     });
   };
   _newProject = () => {
-    if(this.state.projectMode){
-      var myUrl = 'https://seniordevops.com/project/new/';
-      AsyncStorage.getItem("user")
-      .then(user => {
-        this.setState({user: user});
-        var data = JSON.stringify({
-          "owner": Number(user), 
-          "name": this.state.newItem
-          });
-        fetch(myUrl, {
-          method: 'POST',
-          headers: this.headers(),
-          credentials: 'include',
-          body: data,
-          dataType: "json",
-          })
-        .then(response => response.json())
-        .then(responseJson => {
-          var projectList = this.state.projects.map((project)=>{ return project.id });
-          projectList.push(responseJson.id);
-          this.updateProjectSet(projectList, this.state.username);
+
+    var myUrl = 'https://seniordevops.com/project/new/';
+    AsyncStorage.getItem("user")
+    .then(user => {
+      this.setState({user: user});
+      var data = JSON.stringify({
+        "owner": Number(user), 
+        "name": this.state.newItem
+        });
+      fetch(myUrl, {
+        method: 'POST',
+        headers: this.headers(),
+        credentials: 'include',
+        body: data,
+        dataType: "json",
         })
-        .then(()=>{this.setState({newItem: ""})})
-        .catch( (error) => {alert(JSON.stringify(error))});
-      })
-    }else{
-      this.setState({isLoading: true});
+    .then(response => response.json())
+    .then(responseJson => {
+      var projectList = this.state.projects.map((project)=>{ return project.id });
+      projectList.push(responseJson.id);
+      this.updateProjectSet(projectList, this.state.username);
+    })
+    .then(()=>{this.setState({newItem: ""})})
+    .catch( (error) => {alert(JSON.stringify(error))});
+  })};
+  _newProjectOrUser = () => {
+    this.setState({isLoading: true});
+    if(this.state.projectMode)
+       this._newProject()
+    else{
       var myURL = "https://seniordevops.com/project/list/?username=" + encodeURIComponent(this.state.newItem);
       fetch(myURL, {
       method: 'GET',
@@ -225,7 +227,8 @@ constructor(props) {
         myProjects.push(this.state.currentProjectID); // ADDS THE NEW PROJECT ID TO THE ARRAY OF OLD ONES
         this.updateProjectSet(myProjects, this.state.newItem);
       })
-      .catch( (error) => {alert(JSON.stringify(error))});
+      .then(()=>{this.setState({newItem: "", isLoading: false})})
+      .catch( (error) => {alert(JSON.stringify(error))});  // MARK TO DO: CHANGE TO IS LOADING = FALSE IN PRODUCTION
     }
   }
   updateProjectSet=(projectList, username)=>{
@@ -324,7 +327,7 @@ constructor(props) {
           <Button 
             style={styles.projectButton} 
             textStyle={{fontSize: 18, color: 'white', fontWeight: 'bold' }}
-            onPress={this._newProject}
+            onPress={this._newProjectOrUser}
             >{this.state.buttonText}
           </Button>
         </View>

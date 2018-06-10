@@ -9,7 +9,9 @@ import {
   FlatList,
   Text,
   Picker,
-  ActivityIndicator
+  ActivityIndicator,
+  Modal,
+  TextInput
 } from 'react-native';
 import {Button as NavButton} from 'react-native';
 import Button from 'apsl-react-native-button';
@@ -23,8 +25,7 @@ class ListItem extends React.PureComponent {
     if (!this.state.item.finished){
       this.props.parentMethod(this.state.item.project, this.state.item.id);
     }
-  };
-
+  }
   _onPressItem = (index => alert("Pressed row: " + index));
   doubleDigit=(i)=> {
     if (i < 10) {i = "0" + i};      // add zero in front of numbers < 10
@@ -91,7 +92,8 @@ export default class Clockin extends Component<{}> {
       clockedIn: (false, "Not Clocked In"),
       clockButtonText: "Clock In",
       isLoading: false,
-      first_name: "" 
+      first_name: "", 
+      modalVisible: false
     };
   }
   componentDidMount(){
@@ -104,7 +106,9 @@ export default class Clockin extends Component<{}> {
       username: this.props.navigation.state.params.username
     });          
   }
-
+  setModalVisible(visible) {
+    this.setState({modalVisible: visible});
+  }
   _keyExtractor = (item, index) => String(index);
 
   _renderItem = ({item, index }) => (
@@ -155,7 +159,11 @@ export default class Clockin extends Component<{}> {
         message: 'Something bad happened ' + error
     }));
   }
+  _closeModal = () => {
+    this.setModalVisible(false);
+  }
   _clockOut = () => {
+    this.setModalVisible(false);
     this.setState({isLoading: true});
     var rightNow = new Date().toISOString();
     fetch('https://seniordevops.com/clockin/update/' + this.state.currentHour + '/', {
@@ -166,7 +174,8 @@ export default class Clockin extends Component<{}> {
             user: this.state.user,
             comments: "comments were made",
             finished: rightNow,
-            project: this.state.currentProject
+            project: this.state.currentProject,
+            comments: this.state.comments
         }),
         dataType: "json",
       })
@@ -183,9 +192,9 @@ export default class Clockin extends Component<{}> {
       }))
     return null;
   }
-  _clockIn = () => {
+  _clockInOrOutPressed = () => {
     if (this.state.clockedIn == (true, "Clocked In")){
-      this._clockOut();
+      this.setModalVisible(true);
       return null;
     }
     var myProject = 0;
@@ -275,7 +284,43 @@ export default class Clockin extends Component<{}> {
     const spinner = this.state.isLoading ?
       <ActivityIndicator size='large'/> : null;
     return (
-      <View style={{flex:1}}>
+    <View style={{flex:1}}>
+      <Modal
+          animationType="slide"
+          transparent={true}
+          visible={this.state.modalVisible}
+          onRequestClose={() => {
+            alert('Modal has been closed.');
+          }}>
+          <View style={styles.modalContent}>
+            <Text style={styles.welcome}>Enter your comments below</Text>
+            <View style={styles.textAreaContainer} >
+              <TextInput
+                style={styles.textArea}
+                underlineColorAndroid="transparent"
+                placeholder={"Comments go here"}
+                placeholderTextColor={"grey"}
+                onChangeText={(comments) => this.setState({comments})}
+                numberOfLines={10}
+                multiline={true}
+              />
+            </View>
+            <View style={styles.buttonContainer}>
+              <Button 
+                style={styles.saveButton} 
+                textStyle={styles.saveText}
+                onPress={this._clockOut}>
+                SAVE CHANGES
+              </Button>
+              <Button 
+                style={styles.closeButton} 
+                textStyle={styles.saveText}
+                onPress={this._closeModal}>
+                CLOSE
+              </Button>
+            </View>
+          </View>
+        </Modal>
         <View style={styles.topHalf}>
           <View style={styles.logoView}>
             <View style={styles.labelView}>
@@ -283,9 +328,9 @@ export default class Clockin extends Component<{}> {
               <Text style={styles.clockinStatus}>{this.state.clockedIn}</Text>
               <View style={{flex:1, marginTop: 0, flexDirection: "row", justifyContent: 'space-evenly' }}>
                 <Button 
-                  style={{backgroundColor: '#3371FF', width:150, height: 51, borderRadius: 30}} 
+                  style={styles.clockinButton} 
                   textStyle={{fontSize: 18, color: 'white', fontWeight: 'bold' }}
-                  onPress={this._clockIn}>
+                  onPress={this._clockInOrOutPressed}>
                   {this.state.clockButtonText}
                 </Button>
               </View>
@@ -311,7 +356,7 @@ export default class Clockin extends Component<{}> {
                 label={myProject.name} 
                 value={myProject.id}
                 key={myProject.id}
-              />) 
+              />)
             })}
           </Picker>
         </View>
@@ -412,10 +457,62 @@ const styles = StyleSheet.create({
     fontSize: 22,
     //backgroundColor: 'red',
     textAlign: 'center',
-    margin: 3
+    marginBottom: 9
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    flex: 1,
+    justifyContent: 'space-evenly'
+  },
+  saveButton: {
+    backgroundColor: '#3371FF', 
+    width:130, 
+    height: 51,
+    borderRadius: 30,
+    borderWidth: 0.5,
+    marginTop: 20,
+    marginRight: 10
+  },
+  closeButton: {
+    width:130, 
+    height: 51,
+    borderRadius: 30,
+    borderWidth: 0.5,
+    marginTop: 20,
+    backgroundColor: '#7c889b'
+  },
+  saveText: {
+    fontSize: 14, 
+    color: 'white', 
+    fontWeight: 'bold' 
   },
   clockinButton: {
-    flex: 0.1, 
-    color: "#FFFFFF",
+    backgroundColor: '#3371FF', 
+    width:150, 
+    height: 51,
+    borderRadius: 30,
+    borderWidth: 0.5},
+  modalContent: {
+    flex: 0.6,
+    marginTop: 120,
+    padding: 22,
+    alignItems: 'center',
+    alignSelf: 'center',
+    borderRadius: 10,
+    borderWidth:0.5,
+    borderColor: 'black',
+    backgroundColor: '#E8E5E5'},
+  textAreaContainer: {
+    borderColor: "black",
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 5,
+    width: 300,
+    flex:2.8,
+    marginTop: 10
   },
+  textArea: {
+    justifyContent: "flex-start",
+    flex:2
+  }
 });
