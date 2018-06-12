@@ -353,7 +353,8 @@ const styles = StyleSheet.create({
   },
   thumb: {
     width: 80,
-    height: 80},
+    height: 80,
+    transform: [ { scale: 0.8 } ] },
   picker: {
     height: 50, 
     width: 100, 

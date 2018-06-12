@@ -182,6 +182,12 @@ export default class Clockin extends Component<{}> {
       .then(response => response.json())
       .then((responseJson) => {
         this.setState({clockedIn: (false, "Not Clocked In"), clockButtonText: "Clock In"});
+        if(this.state.keepGoing){
+          alert("KEPT GOING");
+          this._clockIn();
+          this.setState({keepGoing:false});
+          return;
+        }
         this._getHours(this.state.currentProject);
         this.setState({isLoading: false});
       })
@@ -192,11 +198,18 @@ export default class Clockin extends Component<{}> {
       }))
     return null;
   }
+  _commentPressed = () => {
+    this.setState({keepGoing: true});
+    this._clockInOrOutPressed();
+  }
   _clockInOrOutPressed = () => {
     if (this.state.clockedIn == (true, "Clocked In")){
       this.setModalVisible(true);
       return null;
     }
+    this._clockIn();
+  }
+  _clockIn = () => {
     var myProject = 0;
     this.state.projects.map((aProject) => {
       if (aProject.id == this.state.currentProject){
@@ -326,17 +339,27 @@ export default class Clockin extends Component<{}> {
             <View style={styles.labelView}>
               <Text numberOfLines={3} style={styles.welcome}>Hi, {this.state.first_name}</Text>
               <Text style={styles.clockinStatus}>{this.state.clockedIn}</Text>
-              <View style={{flex:1, marginTop: 0, flexDirection: "row", justifyContent: 'space-evenly' }}>
+              <View style={styles.buttonContainerTwo}>
                 <Button 
                   style={styles.clockinButton} 
                   textStyle={{fontSize: 18, color: 'white', fontWeight: 'bold' }}
                   onPress={this._clockInOrOutPressed}>
                   {this.state.clockButtonText}
                 </Button>
+                {
+                  (this.state.clockedIn == "Clocked In") ? 
+                    (<Button 
+                      style={styles.clockinButton} 
+                      textStyle={{fontSize: 18, color: 'white', fontWeight: 'bold' }}
+                      onPress={this._commentPressed}>
+                      Comment
+                    </Button>) : null
+                }
               </View>
             </View>
             <Image source={require('./Resources/seniorDevopsSmall.png')} style={styles.thumb}/>
           </View>
+          <View>
           <Picker
             selectedValue={this.state.currentProject}
             style={styles.picker}
@@ -359,6 +382,7 @@ export default class Clockin extends Component<{}> {
               />)
             })}
           </Picker>
+          </View>
         </View>
         {spinner}        
         <FlatList
@@ -382,7 +406,8 @@ const styles = StyleSheet.create({
   logoView: {
     flex:1, 
     flexDirection:'row', 
-    //backgroundColor:'gray'
+    //backgroundColor:'gray',
+    margin: 7
   },
   welcome: {
     fontSize: 23,
@@ -390,26 +415,28 @@ const styles = StyleSheet.create({
     marginBottom: 3
   },
   labelView: {
-    flex: 0.59,
+    flex: 0.69,
     flexDirection: 'column',
-    //backgroundColor:'red',
-    marginTop: 6,
+    //backgroundColor:'orange',
     height: 130,
-    width: 50,
+    width: 60,
     justifyContent: 'space-evenly'
   },
   thumb: {
-    width: 35,
+    marginTop: -10,
+    marginRight: -10,
+    width: 50,
     height: 90,
     margin: 1,
-    flex: 0.32,
+    flex: 0.38,
+    transform: [{scaleX: 0.69}, {scaleY: 0.69}],
     alignItems: 'center',
     //backgroundColor: 'yellow',
     flexDirection: 'column'
   },
   picker: {
     height: 150, 
-    width: 50, 
+    width: 100, 
     flex: 0.26,
     flexDirection: 'column',
     //backgroundColor: 'green',
@@ -417,8 +444,7 @@ const styles = StyleSheet.create({
   },
   flatList: {
     marginTop:45,
-    flex: 1,
-    //backgroundColor: '#FF9484'
+    flex: 1
   },
   header: {
     flex: 1,
@@ -457,12 +483,21 @@ const styles = StyleSheet.create({
     fontSize: 22,
     //backgroundColor: 'red',
     textAlign: 'center',
-    marginBottom: 9
+    marginBottom: 14,
+    marginTop:7
   },
   buttonContainer: {
     flexDirection: 'row',
     flex: 1,
     justifyContent: 'space-evenly'
+  },
+  buttonContainerTwo: {
+    //backgroundColor: 'red',
+    flexDirection: 'row',
+    flex: 8,
+    width: 260,
+    justifyContent: 'space-evenly',
+    alignItems: 'center'
   },
   saveButton: {
     backgroundColor: '#3371FF', 
@@ -488,14 +523,16 @@ const styles = StyleSheet.create({
   },
   clockinButton: {
     backgroundColor: '#3371FF', 
-    width:150, 
+    width:110, 
     height: 51,
     borderRadius: 30,
-    borderWidth: 0.5},
+    borderWidth: 0.5,
+    margin: 5
+  },
   modalContent: {
-    flex: 0.6,
-    marginTop: 120,
-    padding: 22,
+    flex: 0.5,
+    marginTop: 60,
+    padding: 28,
     alignItems: 'center',
     alignSelf: 'center',
     borderRadius: 10,
