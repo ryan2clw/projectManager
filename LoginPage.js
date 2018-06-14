@@ -44,6 +44,7 @@ export default class LoginPage extends Component<{}> {
     };
   }
   componentDidMount() {
+    // ADD STAY CLOCKED IN FEATURE, RIGHT NOW IT JUST GRABS CREDS FOR CONVENIENCE
     this._getToken();
   }
   _headers(){
@@ -104,7 +105,8 @@ export default class LoginPage extends Component<{}> {
         password: this.state.password, 
         user: this.state.user_id, 
         token: this.state.token,
-        first_name: this.state.first_name
+        first_name: this.state.first_name,
+        user_id: this.state.user_id
       });
     }).catch(error =>
       this.setState({

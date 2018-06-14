@@ -286,7 +286,7 @@ export default class Clockin extends Component<{}> {
     },
     headerRight: (
       <NavButton
-        onPress={() => navigation.navigate('Project')}
+        onPress={() => navigation.navigate('Project', { user_id: 1 })}
         title="Projects"
         color="#000"
       />

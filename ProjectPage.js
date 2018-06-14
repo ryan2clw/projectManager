@@ -16,6 +16,57 @@ import {
 import Button from 'apsl-react-native-button';
 import Swipeable from 'react-native-swipeable-row';
 
+class ListItemTwo extends React.PureComponent {
+
+  constructor(props){
+    super(props);
+    this.state = ({
+      item : this.props.item});
+    /* MARK TO DO: FIX HARD CODED NAME IN APP
+
+    AsyncStorage.getItem("username").then((username) => {
+      this.setState({"username": username});
+    });*/
+    //alert(JSON.stringify(this.props));
+  };
+ 
+  handleUserBeganScrollingParentView() {
+    this.swipeable.recenter();
+  }
+
+  _onPress = () => {
+    this.swipeable.recenter();
+    this.props.onPressItem(this.props.item);
+  };
+  
+  render() {
+    //alert(JSON.stringify(this.props));
+    return (
+      <Swipeable
+        rightButtons={this.props.isOwner?[
+            <View style={{width:80}}>
+            <Button 
+              style={{
+                backgroundColor: 'red',
+                borderRadius:0, 
+                borderColor: "red",
+              }}
+              textStyle={{
+                fontSize: 18, 
+                color: 'white', 
+                fontWeight: 'bold'
+              }}
+              onPress={this._onPress}> Delete </Button>
+            </View>]:null} 
+        onRef={ref => this.swipeable = ref}>
+        <View style={styles.rowContainer}>
+        <Text style={styles.items}>{this.props.item}</Text>
+        </View>
+        <View style={styles.separator}></View>
+      </Swipeable>);
+  }
+}
+
 class ListItem extends React.PureComponent {
 
   constructor(props){
@@ -97,15 +148,16 @@ export default class ProjectPage extends Component<{}> {
     super(props);
     this.state = {
       isLoading: false ,
-      username: ""
+      username: "",
+      currentProjectIndex: 0
     };
   };
   componentDidMount(){
     AsyncStorage.getItem("first_name").then(first_name => this.setState({"first_name": first_name})).done();
     AsyncStorage.getItem("username")
     .then(username => this.setState({
-        "username": username,
-        "projectURL":"https://seniordevops.com/project/list/?username=" + username }))
+        username: username,
+        projectURL:"https://seniordevops.com/project/list/?username=" + username }))
     .then(this._getProjects)  // must set username first
     .then(this._getUsers)
     .done();
@@ -120,6 +172,9 @@ export default class ProjectPage extends Component<{}> {
     title: "Projects",
   });
   _keyExtractor = (item, index) => String(index);
+  _keyExtractorTwo = (item, index) => {
+    return String(index);
+  };
 
   _renderItem = ({item, index }) => (
     
@@ -128,8 +183,40 @@ export default class ProjectPage extends Component<{}> {
       index={index}
       onPressItem={this._onPressItem}/>
   );
+  _renderItemTwo = ({item, index }) => (
+
+    <ListItemTwo
+      item={item}
+      isOwner={this.state.isOwner}
+      index={index}
+      onPressItem={this._onPressItemTwo}/>
+  );
   /* List item props passed here 
      Deletes or Quits Project and then makes API calls to update UI */
+  _onPressItemTwo = (username) => {
+    if(username==this.state.username){
+      alert("YOU CAN'T DELETE YOURSELF. \n SWITCH TO ALL TO DELETE PROJECT");
+      return;
+    }
+    var usersProjectsURL = "https://seniordevops.com/project/list/?username=" + username;
+    fetch(usersProjectsURL, {
+      method: 'GET',
+      headers: this.headers(),
+      credentials: 'include',
+    })
+    .then(response => response.json())
+    .then((responseJson) => { 
+      var myProjects = [];
+      responseJson.forEach(function(project){
+          myProjects.push(project.id);
+      });
+      myProjects.pop(this.currentProjectID);
+      //this.setState({  projectMode: true }); // Avoids null during table reload
+      this.updateProjectSet( myProjects, username );
+      //this.setState({  projectMode: false }); // After data reloads return to the project, dont stay in overview
+      })
+    .catch( (error) => {alert(JSON.stringify(error))});
+  }
   _onPressItem = ((item, index, buttonType) => {
     if(buttonType == "DELETE"){
       const deleteURL = "https://seniordevops.com/project/delete/" + JSON.parse(item).name + "/";
@@ -160,7 +247,7 @@ export default class ProjectPage extends Component<{}> {
       credentials: 'include',
     })
     .then(response => response.json())
-    .then((responseJson) => {this.setState({ projects: responseJson });})
+    .then((responseJson) => { this.setState({ projects: responseJson });})
     .catch( (error) => {alert(JSON.stringify(error))});
   };
   _getUsers = () => {
@@ -208,6 +295,7 @@ export default class ProjectPage extends Component<{}> {
     .catch( (error) => {alert(JSON.stringify(error))});
   })};
   _newProjectOrUser = () => {
+    //alert(this.state.currentProjectName + "\n" + this.state.currentProjectID + "\n" + this.state.currentProjectIndex);
     this.setState({isLoading: true});
     if(this.state.projectMode)
        this._newProject()
@@ -254,6 +342,13 @@ export default class ProjectPage extends Component<{}> {
       </View>
     )
   };
+  renderHeaderTwo = () => {
+    return (
+      <View style={styles.headerTwo}>
+        <Text style={styles.title}>Members</Text>
+      </View>
+    )
+  };
   headers(){
     var base64 = require('base-64');
     var utf8 = require('utf8');
@@ -270,19 +365,26 @@ export default class ProjectPage extends Component<{}> {
   pickedProject = (itemValue, itemIndex) => {
     if (JSON.parse(itemValue).name == "Projects Overview"){
       this.setState({
+        isOwner: (JSON.parse(itemValue).owner == 1),
         projectMode: true, 
         textBox: 'New project name',
-        buttonText: 'New Project'});
+        buttonText: 'New Project',
+        currentProject: itemValue,
+        currentProjectName: JSON.parse(itemValue).name,
+        currentProjectID: JSON.parse(itemValue).id,
+        currentProjectIndex: itemIndex});
+        return;
     }else{
       this.setState({
+        isOwner: (JSON.parse(itemValue).owner == 1),
         projectMode: false,
         textBox: 'email address',
-        buttonText: 'Invite'});
+        buttonText: 'Invite',
+        currentProject: itemValue,
+        currentProjectName: JSON.parse(itemValue).name,
+        currentProjectID: JSON.parse(itemValue).id,
+        currentProjectIndex: itemIndex});
     }
-    this.setState({ 
-      currentProject: itemValue,
-      currentProjectName: JSON.parse(itemValue).name,
-      currentProjectID: JSON.parse(itemValue).id});
   };
 
   render() {
@@ -298,7 +400,7 @@ export default class ProjectPage extends Component<{}> {
             onValueChange={this.pickedProject}
             style={styles.picker}>
             <Picker.Item label="All" value='{"name": "Projects Overview"}' />
-            { // I FUCKING LOVE TERNARIES:   ifProjectsExists ? mapTheirValues : justChillWithNull
+            {
               this.state.projects ?  
                 this.state.projects.map((myProject) => {
                     return (<Picker.Item 
@@ -311,12 +413,19 @@ export default class ProjectPage extends Component<{}> {
         </View>
         {spinner}
         <Text style={styles.project}>{this.state.currentProjectName}</Text>
-        <FlatList
-          data={this.state.members}
-          keyExtractor={this._keyExtractor}
-          renderItem={this._renderItem}
-          ListHeaderComponent={this.renderHeader}
-        />
+        {
+          this.state.projectMode ?
+            (<FlatList
+              data={this.state.members}
+              keyExtractor={this._keyExtractor}
+              renderItem={this._renderItem}
+              ListHeaderComponent={this.renderHeader}/>)
+          : this.state.members ? 
+            (<FlatList
+              data={this.state.members[this.state.currentProjectIndex-1].members.map(member=>member.username)}
+              keyExtractor={this._keyExtractorTwo}
+              renderItem={this._renderItemTwo}
+              ListHeaderComponent={this.renderHeaderTwo}/>):null}
         <Text style={styles.clockinStatus}>{this.state.clockedIn}</Text>
         <TextInput
           style={styles.newItem}
@@ -364,6 +473,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#D3D3D3',
     justifyContent: 'space-around',},
+  headerTwo: {
+    flex: 1, flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#D3D3D3',
+    justifyContent: 'center',},
   title: {
     fontSize: 20,
     fontWeight: 'bold',
