@@ -206,15 +206,13 @@ export default class ProjectPage extends Component<{}> {
     })
     .then(response => response.json())
     .then((responseJson) => { 
-      var myProjects = [];
+      var myProjects = {};
       responseJson.forEach(function(project){
-          myProjects.push(project.id);
+          myProjects[project.name] = project.id;
       });
-      myProjects.pop(this.currentProjectID);
-      //this.setState({  projectMode: true }); // Avoids null during table reload
-      this.updateProjectSet( myProjects, username );
-      //this.setState({  projectMode: false }); // After data reloads return to the project, dont stay in overview
-      })
+      delete(myProjects[this.state.currentProjectName]);
+      var projectList = Object.values(myProjects);
+      this.updateProjectSet(projectList, username);})
     .catch( (error) => {alert(JSON.stringify(error))});
   }
   _onPressItem = ((item, index, buttonType) => {
@@ -265,6 +263,7 @@ export default class ProjectPage extends Component<{}> {
         isLoading:false});
       })
     .catch( (error) => {
+      alert(JSON.stringify(error));
       this.setState({members:[],isLoading:false});
     });
   };
@@ -295,7 +294,6 @@ export default class ProjectPage extends Component<{}> {
     .catch( (error) => {alert(JSON.stringify(error))});
   })};
   _newProjectOrUser = () => {
-    //alert(this.state.currentProjectName + "\n" + this.state.currentProjectID + "\n" + this.state.currentProjectIndex);
     this.setState({isLoading: true});
     if(this.state.projectMode)
        this._newProject()
@@ -330,8 +328,9 @@ export default class ProjectPage extends Component<{}> {
         dataType: "json",
         })
     .then(response => response.json()) // pull bits off of the buffer,
-    .then(()=>{this._getProjects()})  //  the response data isnt useful, but did it to ensure syncronous behavior
-    .then(()=>{this._getUsers()})     // reload picker and table after insertion
+    .then(responseJson => alert(JSON.stringify(responseJson)))
+    .then(this._getProjects)  //  the response data isnt useful, but did it to ensure syncronous behavior
+    .then(this._getUsers)     // reload picker and table after insertion
     .catch(error => {alert(JSON.stringify(error));})
   };
   renderHeader = () => {
